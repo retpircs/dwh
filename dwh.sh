@@ -2,29 +2,45 @@
 # Author: retpircs
 # GitHub: https://github.com/retpircs
 # LICENSE: GPLv3 (https://www.gnu.org/licenses/gpl-3.0)
-VERSION="1.1.3"
+VERSION="1.2.0"
+config_file="/etc/dwh.conf"
 
-# Default configuration values
-url="" # discord webhook url
-author=""
-author_url=""
-author_icon=""
-title=""
-title_url=""
-color=""
-footer=""
-footer_icon=""
-username="" # display name in discord
-avatar="" # avatar in discord
-thumbnail=""
-validate="true" # The script validates the arguments before sending them to avoid errors. Disabling it is not recommended.
-checkupdate="true" # The script checks if there is a new version on GitHub and notifies the user. Disabling it is not recommended.
+# Create configuration file if not available
+if [ ! -f "${config_file}" ]; then
+  touch "${config_file}"
+  echo "#!/bin/bash" > "${config_file}"
+  chmod 600 "${config_file}"
+fi
 
-# Copy the default config into a self created config file to not lose the variables during updates.
-# Comment this out: \/
+# Function for checking and adding entries in the configuration file
+write_config() {
+  if ! grep -q "^$1=" "${config_file}"; then
+    if [ -n "${3}" ]; then
+      echo "${1}=\"${2}\" ${3}" >> "${config_file}"
+    else
+      echo "${1}=\"${2}\"" >> "${config_file}"
+    fi
+  fi
+}
 
-# source <path>/<config>.sh
+# Check and add entries to the configuration file
+write_config "url" "" "# discord webhook url"
+write_config "author" ""
+write_config "author_url" ""
+write_config "author_icon" ""
+write_config "title" ""
+write_config "title_url" ""
+write_config "color" ""
+write_config "footer" ""
+write_config "footer_icon" ""
+write_config "username" "" "# display name in discord"
+write_config "avatar" "" "# avatar in discord"
+write_config "thumbnail" ""
+write_config "validate" "true" "# The script validates the arguments before sending them to avoid errors. Disabling it is not recommended."
+write_config "checkupdate" "true" "# The script checks if there is a new version on GitHub and notifies the user. Disabling it is not recommended."
 
+# Retrieve config
+source ${config_file}
 # Check if curl command is available
 CURL="$(which curl)"
 # Temporary file to store the downloaded content
@@ -55,6 +71,7 @@ usage() {
   echo " -da <avatar URL>"
   echo " -i <thumbnail URL>"
   echo " -s skip validations (not recommended)"
+  echo " -C <config file>" overwrite default
   echo " -up update DWH (no other arguments)"
   echo "Description:"
   echo " DWH sends embeds to Discord Webhooks."
@@ -63,7 +80,7 @@ usage() {
   exit 1
 }
 
-# Display error messages with colors
+# Display different messages with colors
 error() {
   echo -e "\e[41m\e[97mERROR:\e[0m \e[31m${@}\e[0m"
   exit 1
@@ -76,7 +93,6 @@ warning() {
 info() {
   echo -e "\e[46m\e[97mINFO:\e[0m \e[93m${@}\e[0m"
 }
-
 
 # Define the structure of the embed JSON
 embed() {
@@ -114,10 +130,9 @@ embed() {
 EOF
 }
 
-# Skip checking for updates
+# Check for updates, skip if checkupdate="false"
 if [ "${checkupdate}" != "false" ]; then
-  # Check if the current script is still up to date.
-  remote_version=$(curl -s "https://raw.githubusercontent.com/retpircs/dwh/master/dwh.sh" | grep -oP 'VERSION="\K[^"]+')
+  remote_version=$(curl -s "https://raw.githubusercontent.com/retpircs/dwh/master/dwh.sh" | grep -o 'VERSION="[0-9.]*"' | sed 's/VERSION="//;s/"$//')
   if [ "${VERSION}" != "${remote_version}" ]; then
     info "DWH is no longer up to date. Your version: ${VERSION} | Latest version: ${remote_version}"
     info "Use '$0 -up' or check online for updates: https://github.com/retpircs/dwh"
@@ -128,6 +143,7 @@ fi
 while [ "${#}" -gt 0 ]; do
   case "${1}" in
     -up) sudo curl -o /bin/dwh https://raw.githubusercontent.com/retpircs/dwh/master/dwh.sh && chmod +x /bin/dwh && info "DWH was updated from ${VERSION} to ${remote_version}."; exit 1 ;;
+    -C) config_file="${2}" && source ${config_file}; shift ;;
     -h) usage ;;
     -U) url="${2}"; shift ;;
     -a) author="${2}"; shift ;;
