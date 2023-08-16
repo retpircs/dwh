@@ -2,7 +2,7 @@
 # Author: retpircs
 # GitHub: https://github.com/retpircs
 # LICENSE: GPLv3 (https://www.gnu.org/licenses/gpl-3.0)
-VERSION="1.1.1"
+VERSION="1.1.2"
 
 # Default configuration values
 url="" # discord webhook url
@@ -117,11 +117,9 @@ EOF
 # Skip checking for updates
 if [ "${checkupdate}" != "false" ]; then
   # Check if the current script is still up to date.
-  remote_content=$(curl -sS https://raw.githubusercontent.com/retpircs/dwh/master/dwh.sh)
-  local_content=$(<"$0")
-  version_line=$(echo "${remote_content}" | grep -o 'VERSION=@')
-  if [ "${VERSION}" != "${version_line}" ]; then
-    info "DWH is no longer up to date. Your version: ${VERSION} | Latest version: ${version_line}"
+  remote_version=$(curl -s "https://raw.githubusercontent.com/retpircs/dwh/master/dwh.sh" | grep -oP 'VERSION="\K[^"]+')
+  if [ "${VERSION}" != "${remote_version}" ]; then
+    info "DWH is no longer up to date. Your version: ${VERSION} | Latest version: ${remote_version}"
     info "Use '$0 -up' or check online for updates: https://github.com/retpircs/dwh"
   fi
 fi
