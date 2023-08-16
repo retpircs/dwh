@@ -1,11 +1,11 @@
 #!/bin/bash
 # Author: retpircs
 # GitHub: https://github.com/retpircs
-# DWH Version: 1.1.0
 # LICENSE: GPLv3 (https://www.gnu.org/licenses/gpl-3.0)
+VERSION="1.1.1"
 
-# Define default configuration values
-url=""
+# Default configuration values
+url="" # discord webhook url
 author=""
 author_url=""
 author_icon=""
@@ -14,14 +14,23 @@ title_url=""
 color=""
 footer=""
 footer_icon=""
-username=""
-avatar=""
+username="" # display name in discord
+avatar="" # avatar in discord
 thumbnail=""
+validate="true" # The script validates the arguments before sending them to avoid errors. Disabling it is not recommended.
+checkupdate="true" # The script checks if there is a new version on GitHub and notifies the user. Disabling it is not recommended.
+
+# Copy the default config into a self created config file to not lose the variables during updates.
+# Comment this out: \/
+
+# source <path>/<config>.sh
 
 # Check if curl command is available
 CURL="$(which curl)"
 # Temporary file to store the downloaded content
 temp_file="/tmp/dwh"
+# Regular expression to match URLs
+url_regex="^(http|https):\/\/[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,}){1,2}(:[0-9]+)?(\/.*)?$"
 
 # Display usage information
 usage() {
@@ -46,10 +55,11 @@ usage() {
   echo " -da <avatar URL>"
   echo " -i <thumbnail URL>"
   echo " -s skip validations (not recommended)"
+  echo " -up update DWH (no other arguments)"
   echo "Description:"
   echo " DWH sends embeds to Discord Webhooks."
+  echo "Version: ${VERSION}"
   echo "========================================="
-  exit 1
   exit 1
 }
 
@@ -62,6 +72,11 @@ error() {
 warning() {
   echo -e "\e[101m\e[97mWARNING:\e[0m \e[31m${@}\e[0m"
 }
+
+info() {
+  echo -e "\e[46m\e[97mINFO:\e[0m \e[93m${@}\e[0m"
+}
+
 
 # Define the structure of the embed JSON
 embed() {
@@ -99,9 +114,22 @@ embed() {
 EOF
 }
 
+# Skip checking for updates
+if [ "${checkupdate}" != "false" ]; then
+  # Check if the current script is still up to date.
+  remote_content=$(curl -sS https://raw.githubusercontent.com/retpircs/dwh/master/dwh.sh)
+  local_content=$(<"$0")
+  version_line=$(echo "${remote_content}" | grep -o 'VERSION=@')
+  if [ "${VERSION}" != "${version_line}" ]; then
+    info "DWH is no longer up to date. Your version: ${VERSION} | Latest version: ${version_line}"
+    info "Use '$0 -up' or check online for updates: https://github.com/retpircs/dwh"
+  fi
+fi
+
 # Parse command-line options
 while [ "${#}" -gt 0 ]; do
   case "${1}" in
+    -up) sudo curl -o /bin/dwh https://raw.githubusercontent.com/retpircs/dwh/master/dwh.sh && chmod +x /bin/dwh && info "DWH was updated from ${VERSION} to ${version_line}."; exit 1 ;;
     -h) usage ;;
     -U) url="${2}"; shift ;;
     -a) author="${2}"; shift ;;
@@ -169,7 +197,6 @@ if [ "${validate}" != "false" ]; then
 
   # Validate the author URL
   if [ -n "${author_url}" ]; then
-    url_regex="^(http|https):\/\/[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,}){1,2}(:[0-9]+)?(\/.*)?$"
     if [[ ! ${author_url} =~ ${url_regex} ]]; then
       author_url=""
       warning "The author URL is invalid. Removing URL to prevent discrepancies."
@@ -199,7 +226,6 @@ if [ "${validate}" != "false" ]; then
 
   # Validate the title URL
   if [ -n "${title_url}" ]; then
-    url_regex="^(http|https):\/\/[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,}){1,2}(:[0-9]+)?(\/.*)?$"
     if [[ ! ${title_url} =~ ${url_regex} ]]; then
       title_url=""
       warning "The title URL is invalid. Removing URL to prevent discrepancies."
