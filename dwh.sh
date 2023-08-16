@@ -2,7 +2,7 @@
 # Author: retpircs
 # GitHub: https://github.com/retpircs
 # LICENSE: GPLv3 (https://www.gnu.org/licenses/gpl-3.0)
-VERSION="1.2.0"
+VERSION="1.2.1"
 config_file="/etc/dwh.conf"
 
 # Create configuration file if not available
@@ -38,6 +38,7 @@ write_config "avatar" "" "# avatar in discord"
 write_config "thumbnail" ""
 write_config "validate" "true" "# The script validates the arguments before sending them to avoid errors. Disabling it is not recommended."
 write_config "checkupdate" "true" "# The script checks if there is a new version on GitHub and notifies the user. Disabling it is not recommended."
+write_config "quiet" "false" "# no output, no matter what"
 
 # Retrieve config
 source ${config_file}
@@ -47,51 +48,63 @@ CURL="$(which curl)"
 temp_file="/tmp/dwh"
 # Regular expression to match URLs
 url_regex="^(http|https):\/\/[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,}){1,2}(:[0-9]+)?(\/.*)?$"
+# Define download url for the latest version
+latest="https://raw.githubusercontent.com/retpircs/dwh/master/dwh.sh"
 
 # Display usage information
 usage() {
-  echo "========================================="
-  echo "$0 <options> <message>"
-  echo ""
-  echo " -h show this message"
-  echo " -U <discord webhook URL> REQUIRED"
-  echo ""
-  echo " -a <author>"
-  echo " -au <author URL> (requires author)"
-  echo " -ai <author icon URL> (requires author)"
-  echo ""
-  echo " -t <title>"
-  echo " -tu <title URL> (requires title)"
-  echo " -c <color HEX> without #"
-  echo ""
-  echo " -f <footer>"
-  echo " -fi <footer icon URL> (requires footer)"
-  echo ""
-  echo " -d <displayname>"
-  echo " -da <avatar URL>"
-  echo " -i <thumbnail URL>"
-  echo " -s skip validations (not recommended)"
-  echo " -C <config file>" overwrite default
-  echo " -up update DWH (no other arguments)"
-  echo "Description:"
-  echo " DWH sends embeds to Discord Webhooks."
-  echo "Version: ${VERSION}"
-  echo "========================================="
+  if [ "${quiet}" != "true" ]; then
+    echo "========================================="
+    echo "$0 <options> <message>"
+    echo ""
+    echo " -h show this message"
+    echo " -U <discord webhook URL> REQUIRED"
+    echo ""
+    echo " -a <author>"
+    echo " -au <author URL> (requires author)"
+    echo " -ai <author icon URL> (requires author)"
+    echo ""
+    echo " -t <title>"
+    echo " -tu <title URL> (requires title)"
+    echo " -c <color HEX> without #"
+    echo ""
+    echo " -f <footer>"
+    echo " -fi <footer icon URL> (requires footer)"
+    echo ""
+    echo " -d <displayname>"
+    echo " -da <avatar URL>"
+    echo " -i <thumbnail URL>"
+    echo ""
+    echo " -s skip validations (not recommended)"
+    echo " -C <config file>" overwrite default
+    echo " -up update DWH (no other arguments)"
+    echo " --q no output, no matter what"
+    echo "Description:"
+    echo " DWH sends embeds to Discord Webhooks."
+    echo "Version: ${VERSION}"
+    echo "========================================="
+  fi
   exit 1
 }
 
 # Display different messages with colors
 error() {
-  echo -e "\e[41m\e[97mERROR:\e[0m \e[31m${@}\e[0m"
+  if [ "${quiet}" != "true" ]; then
+    echo -e "\e[41m\e[97mERROR:\e[0m \e[31m${@}\e[0m"
+  fi
   exit 1
 }
 
 warning() {
-  echo -e "\e[101m\e[97mWARNING:\e[0m \e[31m${@}\e[0m"
+  if [ "${quiet}" != "true" ]; then
+    echo -e "\e[101m\e[97mWARNING:\e[0m \e[31m${@}\e[0m"
+  fi
 }
 
 info() {
-  echo -e "\e[46m\e[97mINFO:\e[0m \e[93m${@}\e[0m"
+  if [ "${quiet}" != "true" ]; then
+    echo -e "\e[46m\e[97mINFO:\e[0m \e[93m${@}\e[0m"
+  fi
 }
 
 # Define the structure of the embed JSON
@@ -130,19 +143,11 @@ embed() {
 EOF
 }
 
-# Check for updates, skip if checkupdate="false"
-if [ "${checkupdate}" != "false" ]; then
-  remote_version=$(curl -s "https://raw.githubusercontent.com/retpircs/dwh/master/dwh.sh" | grep -o 'VERSION="[0-9.]*"' | sed 's/VERSION="//;s/"$//')
-  if [ "${VERSION}" != "${remote_version}" ]; then
-    info "DWH is no longer up to date. Your version: ${VERSION} | Latest version: ${remote_version}"
-    info "Use '$0 -up' or check online for updates: https://github.com/retpircs/dwh"
-  fi
-fi
-
 # Parse command-line options
 while [ "${#}" -gt 0 ]; do
   case "${1}" in
-    -up) sudo curl -o /bin/dwh https://raw.githubusercontent.com/retpircs/dwh/master/dwh.sh && chmod +x /bin/dwh && info "DWH was updated from ${VERSION} to ${remote_version}."; exit 1 ;;
+    --q) quiet="true" ;;
+    -up) sudo curl -o /bin/dwh ${latest} && chmod +x /bin/dwh && info "DWH was updated from ${VERSION} to ${remote_version}." && info "DWH path: /bin/dwh | DWH config: ${config_file}" || error "An unknown error has occurred. Download the latest version here: https://github.com/retpircs/dwh"; exit 1 ;;
     -C) config_file="${2}" && source ${config_file}; shift ;;
     -h) usage ;;
     -U) url="${2}"; shift ;;
@@ -157,7 +162,7 @@ while [ "${#}" -gt 0 ]; do
     -d) username="${2}"; shift ;;
     -da) avatar="${2}"; shift ;;
     -i) thumbnail="${2}"; shift ;;
-    -s) validate="false"; break ;;
+    -s) validate="false" ;;
     *) message="${*}"; break ;;
   esac
   shift
@@ -169,16 +174,23 @@ if [ "${#}" -lt 1 ]; then
 fi
 message="${*}"
 
+# Check for updates, skip if checkupdate="false"
+if [ "${checkupdate}" != "false" ]; then
+  remote_version=$(curl -s "${latest}" | grep -o 'VERSION="[0-9.]*"' | sed 's/VERSION="//;s/"$//')
+  if [ "${VERSION}" != "${remote_version}" ]; then
+    info "DWH is no longer up to date. Your version: ${VERSION} | Latest version: ${remote_version}"
+    info "Use '$0 -up' or check online for updates: https://github.com/retpircs/dwh"
+  fi
+fi
+
 # Check if CURL is available
 if [ -z "${CURL}" ]; then
     error "This script requires CURL to work."
-    exit 1
 fi
 
 # Check if the Discord webhook URL is provided
 if [ -z "${url}" ]; then
   error "The Discord webhook URL must not be empty."
-  exit 1
 fi
 
 # Handle color parameter
@@ -203,10 +215,8 @@ if [ "${validate}" != "false" ]; then
   response="$(curl -s -o /dev/null -w "%{http_code}" -H "Content-Type: application/json" -X POST -d '{"content":null}' "${url}")"
   if [ "${response}" == "401" ]; then
     error "Invalid Webhook Token. Please check your webhook URL."
-    exit 1
   elif [ "${response}" == "6" ]; then
     error "Could not resolve host. Please check the validity of the webhook URL."
-    exit 1
   fi
 
   # Validate the author URL
