@@ -2,7 +2,7 @@
 # Author: retpircs
 # GitHub: https://github.com/retpircs
 # LICENSE: GPLv3 (https://www.gnu.org/licenses/gpl-3.0)
-VERSION="1.2.1"
+VERSION="1.2.2"
 config_file="/etc/dwh.conf"
 
 # Create configuration file if not available
@@ -83,6 +83,7 @@ usage() {
     echo " DWH sends embeds to Discord Webhooks."
     echo "Version: ${VERSION}"
     echo "========================================="
+    check_update
   fi
   exit 1
 }
@@ -104,6 +105,17 @@ warning() {
 info() {
   if [ "${quiet}" != "true" ]; then
     echo -e "\e[46m\e[97mINFO:\e[0m \e[93m${@}\e[0m"
+  fi
+}
+
+# Check for updates, skip if checkupdate="false"
+check_update() {
+  if [ "${checkupdate}" != "false" ]; then
+    remote_version=$(curl -s "${latest}" | grep -o 'VERSION="[0-9.]*"' | sed 's/VERSION="//;s/"$//')
+    if [ "${VERSION}" != "${remote_version}" ]; then
+      info "DWH is no longer up to date. Your version: ${VERSION} | Latest version: ${remote_version}"
+      info "Use '$0 -up' or check online for updates: https://github.com/retpircs/dwh"
+    fi
   fi
 }
 
@@ -174,14 +186,7 @@ if [ "${#}" -lt 1 ]; then
 fi
 message="${*}"
 
-# Check for updates, skip if checkupdate="false"
-if [ "${checkupdate}" != "false" ]; then
-  remote_version=$(curl -s "${latest}" | grep -o 'VERSION="[0-9.]*"' | sed 's/VERSION="//;s/"$//')
-  if [ "${VERSION}" != "${remote_version}" ]; then
-    info "DWH is no longer up to date. Your version: ${VERSION} | Latest version: ${remote_version}"
-    info "Use '$0 -up' or check online for updates: https://github.com/retpircs/dwh"
-  fi
-fi
+check_update
 
 # Check if CURL is available
 if [ -z "${CURL}" ]; then
