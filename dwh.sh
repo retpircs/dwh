@@ -2,7 +2,7 @@
 # Author: retpircs
 # GitHub: https://github.com/retpircs
 # LICENSE: GPLv3 (https://www.gnu.org/licenses/gpl-3.0)
-VERSION="1.1.2"
+VERSION="1.1.3"
 
 # Default configuration values
 url="" # discord webhook url
@@ -127,7 +127,7 @@ fi
 # Parse command-line options
 while [ "${#}" -gt 0 ]; do
   case "${1}" in
-    -up) sudo curl -o /bin/dwh https://raw.githubusercontent.com/retpircs/dwh/master/dwh.sh && chmod +x /bin/dwh && info "DWH was updated from ${VERSION} to ${version_line}."; exit 1 ;;
+    -up) sudo curl -o /bin/dwh https://raw.githubusercontent.com/retpircs/dwh/master/dwh.sh && chmod +x /bin/dwh && info "DWH was updated from ${VERSION} to ${remote_version}."; exit 1 ;;
     -h) usage ;;
     -U) url="${2}"; shift ;;
     -a) author="${2}"; shift ;;
