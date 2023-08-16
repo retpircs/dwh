@@ -51,7 +51,7 @@ dwh -U https://discord.com/api/webhooks/1234567890/ABCDEFGHIJKLMNOPQRSTUVWXYZ -t
 
 ## Installation
 ```bash
-sudo wget https://github.com/retpircs/dwh/master/dwh -O /bin/dwh && chmod +x /bin/dwh
+sudo wget https://github.com/retpircs/dwh/blob/master/dwh.sh -O /bin/dwh && chmod +x /bin/dwh
 ```
 If the path for the system commands is not ``/bin``, change it.
 
