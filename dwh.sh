@@ -2,7 +2,7 @@
 # Author: retpircs
 # GitHub: https://github.com/retpircs
 # LICENSE: GPLv3 (https://www.gnu.org/licenses/gpl-3.0)
-VERSION="1.2.2"
+VERSION="1.2.3"
 config_file="/etc/dwh.conf"
 
 # Create configuration file if not available
@@ -48,8 +48,9 @@ CURL="$(which curl)"
 temp_file="/tmp/dwh"
 # Regular expression to match URLs
 url_regex="^(http|https):\/\/[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,}){1,2}(:[0-9]+)?(\/.*)?$"
-# Define download url for the latest version
+# Define download url and the version for the latest update
 latest="https://raw.githubusercontent.com/retpircs/dwh/master/dwh.sh"
+remote_version=$(curl -s "${latest}" | grep -o 'VERSION="[0-9.]*"' | sed 's/VERSION="//;s/"$//')
 
 # Display usage information
 usage() {
@@ -111,7 +112,6 @@ info() {
 # Check for updates, skip if checkupdate="false"
 check_update() {
   if [ "${checkupdate}" != "false" ]; then
-    remote_version=$(curl -s "${latest}" | grep -o 'VERSION="[0-9.]*"' | sed 's/VERSION="//;s/"$//')
     if [ "${VERSION}" != "${remote_version}" ]; then
       info "DWH is no longer up to date. Your version: ${VERSION} | Latest version: ${remote_version}"
       info "Use '$0 -up' or check online for updates: https://github.com/retpircs/dwh"
